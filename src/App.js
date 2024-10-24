@@ -4,6 +4,8 @@ import Modal from "react-modal";
 import { FaSearch, FaTrash, FaTimes, FaSortUp, FaSortDown } from "react-icons/fa";
 import axios from "axios";
 
+Modal.setAppElement("#root");
+
 function App() {
   const [logs, setLogs] = useState([]);
   const [filters, setFilters] = useState({ stakeUsername: "", level: "" });
@@ -66,13 +68,21 @@ function App() {
           <input
             placeholder="Utilisateur (stakeUsername)"
             value={filters.stakeUsername}
-            onChange={(e) => setFilters({ ...filters, stakeUsername: e.target.value })}
+            onChange={(e) => {
+              if (e && e.target) {
+                setFilters({ ...filters, stakeUsername: e.target.value });
+              }
+            }}
             className="bg-gray-800 text-white px-4 py-2 rounded flex-grow"
           />
           <input
             placeholder="Niveau"
             value={filters.level}
-            onChange={(e) => setFilters({ ...filters, level: e.target.value })}
+            onChange={(e) => {
+              if (e && e.target) {
+                setFilters({ ...filters, level: e.target.value });
+              }
+            }}
             className="bg-gray-800 text-white px-4 py-2 rounded flex-grow"
           />
           <button
@@ -87,31 +97,44 @@ function App() {
         <div className="overflow-x-auto">
           <table {...getTableProps()} className="w-full">
             <thead>
-              {headerGroups.map((headerGroup) => (
-                <tr {...headerGroup.getHeaderGroupProps()}>
-                  {headerGroup.headers.map((column) => (
-                    <th {...column.getHeaderProps(column.getSortByToggleProps())} className="p-3 text-left bg-gray-800">
-                      {column.render("Header")}
-                      <span className="ml-2">{column.isSorted ? column.isSortedDesc ? <FaSortDown /> : <FaSortUp /> : ""}</span>
-                    </th>
-                  ))}
-                </tr>
-              ))}
+              {headerGroups.map((headerGroup) => {
+                const { key: headerGroupKey, ...headerGroupProps } = headerGroup.getHeaderGroupProps();
+                return (
+                  <tr key={headerGroupKey} {...headerGroupProps}>
+                    {headerGroup.headers.map((column) => {
+                      const { key: columnKey, ...columnProps } = column.getHeaderProps(column.getSortByToggleProps());
+                      return (
+                        <th key={columnKey} {...columnProps} className="p-3 text-left bg-gray-800">
+                          {column.render("Header")}
+                          <span className="ml-2">
+                            {column.isSorted ? column.isSortedDesc ? <FaSortDown /> : <FaSortUp /> : ""}
+                          </span>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
             </thead>
             <tbody {...getTableBodyProps()}>
               {page.map((row) => {
                 prepareRow(row);
+                const { key: rowKey, ...rowProps } = row.getRowProps();
                 return (
                   <tr
-                    {...row.getRowProps()}
+                    key={rowKey}
+                    {...rowProps}
                     onClick={() => setSelectedLog(row.original)}
                     className="bg-gray-700 hover:bg-gray-600 cursor-pointer"
                   >
-                    {row.cells.map((cell) => (
-                      <td {...cell.getCellProps()} className="p-3">
-                        {cell.render("Cell")}
-                      </td>
-                    ))}
+                    {row.cells.map((cell) => {
+                      const { key: cellKey, ...cellProps } = cell.getCellProps();
+                      return (
+                        <td key={cellKey} {...cellProps} className="p-3">
+                          {cell.render("Cell")}
+                        </td>
+                      );
+                    })}
                   </tr>
                 );
               })}
@@ -122,7 +145,7 @@ function App() {
         <Modal
           isOpen={!!selectedLog}
           onRequestClose={() => setSelectedLog(null)}
-          className="bg-gray-900 p-8 rounded-lg max-w-2xl mx-auto mt-20"
+          className="bg-gray-800 text-white p-8 rounded-lg max-w-2xl mx-auto mt-20"
           overlayClassName="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center"
         >
           {selectedLog && (
@@ -144,7 +167,11 @@ function App() {
                 <strong>Timestamp:</strong> {new Date(selectedLog.timestamp).toLocaleString()}
               </p>
               <h3 className="text-xl mt-4 mb-2">Détails supplémentaires</h3>
-              <pre className="bg-gray-800 p-4 rounded overflow-auto max-h-60">{JSON.stringify(selectedLog.details, null, 2)}</pre>
+              <pre className="bg-gray-700 text-white p-4 rounded overflow-auto max-h-60 whitespace-pre-wrap break-words">
+                {selectedLog.details && selectedLog.details.stack
+                  ? selectedLog.details.stack.split("\n").map((line, index) => <div key={index}>{line}</div>)
+                  : JSON.stringify(selectedLog.details, null, 2)}
+              </pre>
             </div>
           )}
         </Modal>
