@@ -1,54 +1,24 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useTable, useSortBy, useFilters, usePagination } from "react-table";
+import Modal from "react-modal";
+import { FaSearch, FaTrash, FaTimes, FaSortUp, FaSortDown } from "react-icons/fa";
 import axios from "axios";
-import {
-  Container,
-  Typography,
-  TextField,
-  Button,
-  Card,
-  CardContent,
-  CardActions,
-  Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  IconButton,
-  Grid2,
-} from "@mui/material";
-import { Close } from "@mui/icons-material";
-import ReactJson from "@microlink/react-json-view";
 
 function App() {
   const [logs, setLogs] = useState([]);
-  const [stakeUsernameFilter, setStakeUsernameFilter] = useState("");
-  const [levelFilter, setLevelFilter] = useState("");
-  const [openDialog, setOpenDialog] = useState(false);
-  const [selectedLog, setSelectedLog] = useState(null);
+  const [filters, setFilters] = useState({ stakeUsername: "", level: "" });
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedLog, setSelectedLog] = useState(null);
 
-  // Mémoriser fetchLogs avec useCallback
   const fetchLogs = useCallback(() => {
     setIsLoading(true);
     axios
-      .get("https://ssplogger-ssplogger.up.railway.app/api/logs", {
-        params: {
-          stakeUsername: stakeUsernameFilter || undefined,
-          level: levelFilter || undefined,
-        },
-      })
-      .then((response) => {
-        setLogs(response.data);
-      })
-      .catch((error) => {
-        console.error("Erreur lors de la récupération des logs :", error);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  }, [stakeUsernameFilter, levelFilter]);
+      .get("https://ssplogger-ssplogger.up.railway.app/api/logs", { params: filters })
+      .then((response) => setLogs(response.data))
+      .catch((error) => console.error("Erreur lors de la récupération des logs :", error))
+      .finally(() => setIsLoading(false));
+  }, [filters]);
 
-  // Utiliser useEffect pour appeler fetchLogs au montage et lors des changements
   useEffect(() => {
     fetchLogs();
   }, [fetchLogs]);
@@ -57,127 +27,129 @@ function App() {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer tous les logs ?")) {
       axios
         .delete("https://ssplogger-ssplogger.up.railway.app/api/logs")
-        .then(() => {
-          setLogs([]);
-        })
-        .catch((error) => {
-          console.error("Erreur lors de la suppression des logs :", error);
-        });
+        .then(() => setLogs([]))
+        .catch((error) => console.error("Erreur lors de la suppression des logs :", error));
     }
   };
 
-  const handleOpenDialog = (log) => {
-    setSelectedLog(log);
-    setOpenDialog(true);
-  };
+  const columns = useMemo(
+    () => [
+      { Header: "Timestamp", accessor: (row) => new Date(row.timestamp).toLocaleString() },
+      { Header: "Niveau", accessor: "level" },
+      { Header: "Message", accessor: "message" },
+      { Header: "Utilisateur", accessor: "stakeUsername" },
+    ],
+    []
+  );
 
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
-  };
+  const { getTableProps, getTableBodyProps, headerGroups, page, prepareRow } = useTable(
+    { columns, data: logs },
+    useFilters,
+    useSortBy,
+    usePagination
+  );
 
   return (
-    <Container maxWidth="lg">
-      <Typography variant="h4" gutterBottom>
-        Dashboard des Logs
-      </Typography>
-
-      {/* Filtres */}
-      <Grid2 container spacing={2} sx={{ marginBottom: 2 }}>
-        <Grid2 xs={12} sm={6} md={4}>
-          <TextField
-            label="Utilisateur (stakeUsername)"
-            variant="outlined"
-            fullWidth
-            value={stakeUsernameFilter}
-            onChange={(e) => setStakeUsernameFilter(e.target.value)}
-          />
-        </Grid2>
-        <Grid2 xs={12} sm={6} md={4}>
-          <TextField
-            label="Niveau"
-            variant="outlined"
-            fullWidth
-            value={levelFilter}
-            onChange={(e) => setLevelFilter(e.target.value)}
-          />
-        </Grid2>
-        <Grid2 xs={12} sm={6} md={4}>
-          <Button variant="contained" color="primary" onClick={fetchLogs} fullWidth disabled={isLoading}>
-            {isLoading ? "Chargement..." : "Rechercher"}
-          </Button>
-        </Grid2>
-        <Grid2 xs={12}>
-          <Button variant="contained" color="secondary" onClick={handleDeleteLogs} fullWidth>
-            Vider les logs
-          </Button>
-        </Grid2>
-      </Grid2>
-
-      {/* Liste des logs */}
-      <Grid2 container spacing={2}>
-        {logs.map((log) => (
-          <Grid2 xs={12} sm={6} md={4} key={log.id}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  {new Date(log.timestamp).toLocaleString()}
-                </Typography>
-                <Chip label={log.level} color={log.level === "error" ? "error" : "default"} size="small" />
-                <Typography variant="body2" noWrap>
-                  {log.message}
-                </Typography>
-                <Typography variant="body2">Utilisateur: {log.stakeUsername}</Typography>
-                <Typography variant="body2">
-                  Version: {log.appVersion} | Plateforme: {log.platform}
-                </Typography>
-              </CardContent>
-              <CardActions>
-                <Button size="small" onClick={() => handleOpenDialog(log)}>
-                  Voir les détails
-                </Button>
-              </CardActions>
-            </Card>
-          </Grid2>
-        ))}
-      </Grid2>
-
-      {logs.length === 0 && !isLoading && (
-        <Typography variant="body1" align="center" sx={{ marginTop: 2 }}>
-          Aucun log trouvé.
-        </Typography>
-      )}
-
-      {/* Dialog pour afficher les détails */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} fullScreen>
-        <DialogTitle>
-          Détails du log
-          <IconButton
-            aria-label="close"
-            onClick={handleCloseDialog}
-            sx={{
-              position: "absolute",
-              right: 8,
-              top: 8,
-            }}
+    <div className="bg-gray-900 text-gray-100 min-h-screen">
+      <div className="container mx-auto px-4 py-8">
+        <header className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-light">Dashboard des Logs</h1>
+          <button
+            onClick={handleDeleteLogs}
+            className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded flex items-center"
           >
-            <Close />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent>
+            <FaTrash className="mr-2" /> Vider les logs
+          </button>
+        </header>
+
+        <div className="flex gap-4 mb-8">
+          <input
+            placeholder="Utilisateur (stakeUsername)"
+            value={filters.stakeUsername}
+            onChange={(e) => setFilters({ ...filters, stakeUsername: e.target.value })}
+            className="bg-gray-800 text-white px-4 py-2 rounded flex-grow"
+          />
+          <input
+            placeholder="Niveau"
+            value={filters.level}
+            onChange={(e) => setFilters({ ...filters, level: e.target.value })}
+            className="bg-gray-800 text-white px-4 py-2 rounded flex-grow"
+          />
+          <button
+            onClick={fetchLogs}
+            disabled={isLoading}
+            className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded flex items-center"
+          >
+            <FaSearch className="mr-2" /> {isLoading ? "Chargement..." : "Rechercher"}
+          </button>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table {...getTableProps()} className="w-full">
+            <thead>
+              {headerGroups.map((headerGroup) => (
+                <tr {...headerGroup.getHeaderGroupProps()}>
+                  {headerGroup.headers.map((column) => (
+                    <th {...column.getHeaderProps(column.getSortByToggleProps())} className="p-3 text-left bg-gray-800">
+                      {column.render("Header")}
+                      <span className="ml-2">{column.isSorted ? column.isSortedDesc ? <FaSortDown /> : <FaSortUp /> : ""}</span>
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+            <tbody {...getTableBodyProps()}>
+              {page.map((row) => {
+                prepareRow(row);
+                return (
+                  <tr
+                    {...row.getRowProps()}
+                    onClick={() => setSelectedLog(row.original)}
+                    className="bg-gray-700 hover:bg-gray-600 cursor-pointer"
+                  >
+                    {row.cells.map((cell) => (
+                      <td {...cell.getCellProps()} className="p-3">
+                        {cell.render("Cell")}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <Modal
+          isOpen={!!selectedLog}
+          onRequestClose={() => setSelectedLog(null)}
+          className="bg-gray-900 p-8 rounded-lg max-w-2xl mx-auto mt-20"
+          overlayClassName="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center"
+        >
           {selectedLog && (
-            <>
-              <Typography variant="h6">Message</Typography>
-              <Typography paragraph>{selectedLog.message}</Typography>
-              <Typography variant="h6">Détails</Typography>
-              <ReactJson src={selectedLog.details} theme="monokai" />
-            </>
+            <div>
+              <button onClick={() => setSelectedLog(null)} className="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <FaTimes />
+              </button>
+              <h2 className="text-2xl mb-4">Détails du log</h2>
+              <p className="mb-2">
+                <strong>Message:</strong> {selectedLog.message}
+              </p>
+              <p className="mb-2">
+                <strong>Niveau:</strong> {selectedLog.level}
+              </p>
+              <p className="mb-2">
+                <strong>Utilisateur:</strong> {selectedLog.stakeUsername}
+              </p>
+              <p className="mb-2">
+                <strong>Timestamp:</strong> {new Date(selectedLog.timestamp).toLocaleString()}
+              </p>
+              <h3 className="text-xl mt-4 mb-2">Détails supplémentaires</h3>
+              <pre className="bg-gray-800 p-4 rounded overflow-auto max-h-60">{JSON.stringify(selectedLog.details, null, 2)}</pre>
+            </div>
           )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Fermer</Button>
-        </DialogActions>
-      </Dialog>
-    </Container>
+        </Modal>
+      </div>
+    </div>
   );
 }
 
