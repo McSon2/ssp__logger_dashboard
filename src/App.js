@@ -23,6 +23,19 @@ function App() {
 
   useEffect(() => {
     fetchLogs();
+
+    const socket = new WebSocket("wss://ssplogger-ssplogger.up.railway.app"); // Remplacez par votre URL WebSocket
+
+    socket.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      if (message.type === "NEW_LOG") {
+        setLogs((prevLogs) => [message.data, ...prevLogs]);
+      }
+    };
+
+    return () => {
+      socket.close();
+    };
   }, [fetchLogs]);
 
   const handleDeleteLogs = () => {
