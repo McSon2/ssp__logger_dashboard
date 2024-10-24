@@ -71,11 +71,7 @@ function App() {
   const handleDeleteLogs = () => {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer tous les logs ?")) {
       axios
-        .delete("https://ssplogger-ssplogger.up.railway.app/api/logs", {
-          headers: {
-            "x-delete-token": "votre_token_secret", // Remplacez par le même token que dans le backend
-          },
-        })
+        .delete("https://ssplogger-ssplogger.up.railway.app/api/logs")
         .then(() => {
           // Rafraîchir la liste des logs après la suppression
           fetchLogs();
