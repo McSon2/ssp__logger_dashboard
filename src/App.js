@@ -15,6 +15,7 @@ import {
   AccordionDetails,
   TextField,
   TableSortLabel,
+  Button,
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import { ExpandMore } from "@mui/icons-material";
@@ -27,36 +28,37 @@ function App() {
   const [orderBy, setOrderBy] = useState("timestamp");
   const [order, setOrder] = useState("desc");
 
-  useEffect(() => {
-    const fetchLogs = () => {
-      axios
-        .get("https://ssplogger-ssplogger.up.railway.app/api/logs", {
-          params: {
-            stakeUsername: stakeUsernameFilter || undefined,
-            level: levelFilter || undefined,
-          },
-        })
-        .then((response) => {
-          let sortedLogs = response.data;
-          // Trier les logs
-          sortedLogs.sort((a, b) => {
-            if (orderBy === "timestamp") {
-              return order === "asc"
-                ? new Date(a.timestamp) - new Date(b.timestamp)
-                : new Date(b.timestamp) - new Date(a.timestamp);
-            } else {
-              return order === "asc"
-                ? (a[orderBy] || "").localeCompare(b[orderBy] || "")
-                : (b[orderBy] || "").localeCompare(a[orderBy] || "");
-            }
-          });
-          setLogs(sortedLogs);
-        })
-        .catch((error) => {
-          console.error("Erreur lors de la récupération des logs :", error);
+  const fetchLogs = () => {
+    axios
+      .get("https://ssplogger-ssplogger.up.railway.app/api/logs", {
+        params: {
+          stakeUsername: stakeUsernameFilter || undefined,
+          level: levelFilter || undefined,
+        },
+      })
+      .then((response) => {
+        let sortedLogs = response.data;
+        // Trier les logs
+        sortedLogs.sort((a, b) => {
+          if (orderBy === "timestamp") {
+            return order === "asc"
+              ? new Date(a.timestamp) - new Date(b.timestamp)
+              : new Date(b.timestamp) - new Date(a.timestamp);
+          } else {
+            return order === "asc"
+              ? (a[orderBy] || "").localeCompare(b[orderBy] || "")
+              : (b[orderBy] || "").localeCompare(a[orderBy] || "");
+          }
         });
-    };
+        setLogs(sortedLogs);
+      })
+      .catch((error) => {
+        console.error("Erreur lors de la récupération des logs :", error);
+      });
+  };
 
+  // Utiliser useEffect pour appeler fetchLogs au montage et lors des changements de filtres
+  useEffect(() => {
     fetchLogs();
   }, [stakeUsernameFilter, levelFilter, orderBy, order]);
 
@@ -64,6 +66,24 @@ function App() {
     const isAsc = orderBy === property && order === "asc";
     setOrder(isAsc ? "desc" : "asc");
     setOrderBy(property);
+  };
+
+  const handleDeleteLogs = () => {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer tous les logs ?")) {
+      axios
+        .delete("https://ssplogger-ssplogger.up.railway.app/api/logs", {
+          headers: {
+            "x-delete-token": "votre_token_secret", // Remplacez par le même token que dans le backend
+          },
+        })
+        .then(() => {
+          // Rafraîchir la liste des logs après la suppression
+          fetchLogs();
+        })
+        .catch((error) => {
+          console.error("Erreur lors de la suppression des logs :", error);
+        });
+    }
   };
 
   return (
@@ -91,6 +111,15 @@ function App() {
             value={levelFilter}
             onChange={(e) => setLevelFilter(e.target.value)}
           />
+        </Grid>
+        <Grid xs={12} sm={6} md={4} alignItems="center" display="flex">
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={handleDeleteLogs}
+          >
+            Vider les logs
+          </Button>
         </Grid>
       </Grid>
 
