@@ -3,7 +3,6 @@ import axios from "axios";
 import {
   Container,
   Typography,
-  Paper,
   TextField,
   Button,
   Card,
@@ -17,7 +16,7 @@ import {
   IconButton,
   Grid2, // Importé ici
 } from "@mui/material";
-import { ExpandMore, Close } from "@mui/icons-material";
+import { Close } from "@mui/icons-material";
 import ReactJson from "@microlink/react-json-view";
 
 function App() {
