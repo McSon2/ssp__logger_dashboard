@@ -1,7 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useTable, useSortBy, useFilters, usePagination } from "react-table";
 import Modal from "react-modal";
-import { FaSearch, FaTrash, FaTimes, FaSortUp, FaSortDown } from "react-icons/fa";
+import {
+  FaSearch,
+  FaTrash,
+  FaTimes,
+  FaSortUp,
+  FaSortDown,
+} from "react-icons/fa";
 import axios from "axios";
 
 Modal.setAppElement("#root");
@@ -15,16 +21,20 @@ function App() {
   const fetchLogs = useCallback(() => {
     setIsLoading(true);
     axios
-      .get("https://ssplogger-ssplogger.up.railway.app/api/logs", { params: filters })
+      .get("https://ssplogger-ssplogger.up.railway.app/api/logs", {
+        params: filters,
+      })
       .then((response) => setLogs(response.data))
-      .catch((error) => console.error("Erreur lors de la récupération des logs :", error))
+      .catch((error) =>
+        console.error("Erreur lors de la récupération des logs :", error)
+      )
       .finally(() => setIsLoading(false));
   }, [filters]);
 
   useEffect(() => {
     fetchLogs();
 
-    const socket = new WebSocket("wss://ssplogger-ssplogger.up.railway.app"); // Assurez-vous que cette URL est correcte
+    const socket = new WebSocket("wss://ssplogger-ssplogger.up.railway.app"); // Remplacez par votre URL WebSocket
 
     socket.onmessage = (event) => {
       const message = JSON.parse(event.data);
@@ -43,13 +53,18 @@ function App() {
       axios
         .delete("https://ssplogger-ssplogger.up.railway.app/api/logs")
         .then(() => setLogs([]))
-        .catch((error) => console.error("Erreur lors de la suppression des logs :", error));
+        .catch((error) =>
+          console.error("Erreur lors de la suppression des logs :", error)
+        );
     }
   };
 
   const columns = useMemo(
     () => [
-      { Header: "Timestamp", accessor: (row) => new Date(row.timestamp).toLocaleString() },
+      {
+        Header: "Timestamp",
+        accessor: (row) => new Date(row.timestamp).toLocaleString(),
+      },
       { Header: "Niveau", accessor: "level" },
       { Header: "Message", accessor: "message" },
       { Header: "Utilisateur", accessor: "stakeUsername" },
@@ -57,12 +72,8 @@ function App() {
     []
   );
 
-  const { getTableProps, getTableBodyProps, headerGroups, page, prepareRow } = useTable(
-    { columns, data: logs },
-    useFilters,
-    useSortBy,
-    usePagination
-  );
+  const { getTableProps, getTableBodyProps, headerGroups, page, prepareRow } =
+    useTable({ columns, data: logs }, useFilters, useSortBy, usePagination);
 
   return (
     <div className="bg-gray-900 text-gray-100 min-h-screen">
@@ -103,7 +114,8 @@ function App() {
             disabled={isLoading}
             className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded flex items-center"
           >
-            <FaSearch className="mr-2" /> {isLoading ? "Chargement..." : "Rechercher"}
+            <FaSearch className="mr-2" />{" "}
+            {isLoading ? "Chargement..." : "Rechercher"}
           </button>
         </div>
 
@@ -111,16 +123,30 @@ function App() {
           <table {...getTableProps()} className="w-full">
             <thead>
               {headerGroups.map((headerGroup) => {
-                const { key: headerGroupKey, ...headerGroupProps } = headerGroup.getHeaderGroupProps();
+                const { key: headerGroupKey, ...headerGroupProps } =
+                  headerGroup.getHeaderGroupProps();
                 return (
                   <tr key={headerGroupKey} {...headerGroupProps}>
                     {headerGroup.headers.map((column) => {
-                      const { key: columnKey, ...columnProps } = column.getHeaderProps(column.getSortByToggleProps());
+                      const { key: columnKey, ...columnProps } =
+                        column.getHeaderProps(column.getSortByToggleProps());
                       return (
-                        <th key={columnKey} {...columnProps} className="p-3 text-left bg-gray-800">
+                        <th
+                          key={columnKey}
+                          {...columnProps}
+                          className="p-3 text-left bg-gray-800"
+                        >
                           {column.render("Header")}
                           <span className="ml-2">
-                            {column.isSorted ? column.isSortedDesc ? <FaSortDown /> : <FaSortUp /> : ""}
+                            {column.isSorted ? (
+                              column.isSortedDesc ? (
+                                <FaSortDown />
+                              ) : (
+                                <FaSortUp />
+                              )
+                            ) : (
+                              ""
+                            )}
                           </span>
                         </th>
                       );
@@ -141,7 +167,8 @@ function App() {
                     className="bg-gray-700 hover:bg-gray-600 cursor-pointer"
                   >
                     {row.cells.map((cell) => {
-                      const { key: cellKey, ...cellProps } = cell.getCellProps();
+                      const { key: cellKey, ...cellProps } =
+                        cell.getCellProps();
                       return (
                         <td key={cellKey} {...cellProps} className="p-3">
                           {cell.render("Cell")}
@@ -163,7 +190,10 @@ function App() {
         >
           {selectedLog && (
             <div>
-              <button onClick={() => setSelectedLog(null)} className="absolute top-4 right-4 text-gray-400 hover:text-white">
+              <button
+                onClick={() => setSelectedLog(null)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-white"
+              >
                 <FaTimes />
               </button>
               <h2 className="text-2xl mb-4">Détails du log</h2>
@@ -177,12 +207,15 @@ function App() {
                 <strong>Utilisateur:</strong> {selectedLog.stakeUsername}
               </p>
               <p className="mb-2">
-                <strong>Timestamp:</strong> {new Date(selectedLog.timestamp).toLocaleString()}
+                <strong>Timestamp:</strong>{" "}
+                {new Date(selectedLog.timestamp).toLocaleString()}
               </p>
               <h3 className="text-xl mt-4 mb-2">Détails supplémentaires</h3>
               <pre className="bg-gray-700 text-white p-4 rounded overflow-auto max-h-60 whitespace-pre-wrap break-words">
                 {selectedLog.details && selectedLog.details.stack
-                  ? selectedLog.details.stack.split("\n").map((line, index) => <div key={index}>{line}</div>)
+                  ? selectedLog.details.stack
+                      .split("\n")
+                      .map((line, index) => <div key={index}>{line}</div>)
                   : JSON.stringify(selectedLog.details, null, 2)}
               </pre>
             </div>
