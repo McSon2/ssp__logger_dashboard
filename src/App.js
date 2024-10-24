@@ -3,7 +3,6 @@ import { useTable, useSortBy, useFilters, usePagination } from "react-table";
 import Modal from "react-modal";
 import { FaSearch, FaTrash, FaTimes, FaSortUp, FaSortDown } from "react-icons/fa";
 import axios from "axios";
-import { io } from "socket.io-client";
 
 Modal.setAppElement("#root");
 
@@ -25,20 +24,17 @@ function App() {
   useEffect(() => {
     fetchLogs();
 
-    const socket = io("https://ssplogger-ssplogger.up.railway.app", {
-      transports: ["websocket"],
-    });
+    const socket = new WebSocket("wss://ssplogger-ssplogger.up.railway.app"); // Assurez-vous que cette URL est correcte
 
-    socket.on("NEW_LOG", (data) => {
-      setLogs((prevLogs) => [data, ...prevLogs]);
-    });
-
-    socket.on("connect_error", (error) => {
-      console.error("Socket.io connection error:", error);
-    });
+    socket.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      if (message.type === "NEW_LOG") {
+        setLogs((prevLogs) => [message.data, ...prevLogs]);
+      }
+    };
 
     return () => {
-      socket.disconnect();
+      socket.close();
     };
   }, [fetchLogs]);
 
