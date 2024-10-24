@@ -9,39 +9,126 @@ import {
   TableHead,
   TableRow,
   Paper,
+  TableContainer,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  TextField,
+  TableSortLabel,
 } from "@mui/material";
+import Grid from "@mui/material/Unstable_Grid2";
+import { ExpandMore } from "@mui/icons-material";
+import ReactJson from "@microlink/react-json-view";
 
 function App() {
   const [logs, setLogs] = useState([]);
+  const [stakeUsernameFilter, setStakeUsernameFilter] = useState("");
+  const [levelFilter, setLevelFilter] = useState("");
+  const [orderBy, setOrderBy] = useState("timestamp");
+  const [order, setOrder] = useState("desc");
 
   useEffect(() => {
-    // Remplacez l'URL par l'URL de votre backend sur Railway
-    axios
-      .get("https://ssplogger-ssplogger.up.railway.app/api/logs")
-      .then((response) => {
-        setLogs(response.data);
-      })
-      .catch((error) => {
-        console.error("Erreur lors de la récupération des logs :", error);
-      });
-  }, []);
+    const fetchLogs = () => {
+      axios
+        .get("https://ssplogger-ssplogger.up.railway.app/api/logs", {
+          params: {
+            stakeUsername: stakeUsernameFilter || undefined,
+            level: levelFilter || undefined,
+          },
+        })
+        .then((response) => {
+          let sortedLogs = response.data;
+          // Trier les logs
+          sortedLogs.sort((a, b) => {
+            if (orderBy === "timestamp") {
+              return order === "asc"
+                ? new Date(a.timestamp) - new Date(b.timestamp)
+                : new Date(b.timestamp) - new Date(a.timestamp);
+            } else {
+              return order === "asc"
+                ? (a[orderBy] || "").localeCompare(b[orderBy] || "")
+                : (b[orderBy] || "").localeCompare(a[orderBy] || "");
+            }
+          });
+          setLogs(sortedLogs);
+        })
+        .catch((error) => {
+          console.error("Erreur lors de la récupération des logs :", error);
+        });
+    };
+
+    fetchLogs();
+  }, [stakeUsernameFilter, levelFilter, orderBy, order]);
+
+  const handleRequestSort = (property) => {
+    const isAsc = orderBy === property && order === "asc";
+    setOrder(isAsc ? "desc" : "asc");
+    setOrderBy(property);
+  };
 
   return (
     <Container>
       <Typography variant="h4" gutterBottom>
         Dashboard des Logs
       </Typography>
-      <Paper>
+
+      {/* Filtres */}
+      <Grid container spacing={2} sx={{ marginBottom: 2 }}>
+        <Grid xs={12} sm={6} md={4}>
+          <TextField
+            label="Utilisateur (stakeUsername)"
+            variant="outlined"
+            fullWidth
+            value={stakeUsernameFilter}
+            onChange={(e) => setStakeUsernameFilter(e.target.value)}
+          />
+        </Grid>
+        <Grid xs={12} sm={6} md={4}>
+          <TextField
+            label="Niveau"
+            variant="outlined"
+            fullWidth
+            value={levelFilter}
+            onChange={(e) => setLevelFilter(e.target.value)}
+          />
+        </Grid>
+      </Grid>
+
+      <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Timestamp</TableCell>
-              <TableCell>Niveau</TableCell>
+              <TableCell>
+                <TableSortLabel
+                  active={orderBy === "timestamp"}
+                  direction={orderBy === "timestamp" ? order : "asc"}
+                  onClick={() => handleRequestSort("timestamp")}
+                >
+                  Timestamp
+                </TableSortLabel>
+              </TableCell>
+              <TableCell>
+                <TableSortLabel
+                  active={orderBy === "level"}
+                  direction={orderBy === "level" ? order : "asc"}
+                  onClick={() => handleRequestSort("level")}
+                >
+                  Niveau
+                </TableSortLabel>
+              </TableCell>
               <TableCell>Message</TableCell>
-              <TableCell>Détails</TableCell>
-              <TableCell>Utilisateur</TableCell>
+              <TableCell>
+                <TableSortLabel
+                  active={orderBy === "stakeUsername"}
+                  direction={orderBy === "stakeUsername" ? order : "asc"}
+                  onClick={() => handleRequestSort("stakeUsername")}
+                >
+                  Utilisateur
+                </TableSortLabel>
+              </TableCell>
               <TableCell>Version App</TableCell>
               <TableCell>Plateforme</TableCell>
+              <TableCell>Détails</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -51,18 +138,42 @@ function App() {
                   {new Date(log.timestamp).toLocaleString()}
                 </TableCell>
                 <TableCell>{log.level}</TableCell>
-                <TableCell>{log.message}</TableCell>
-                <TableCell>
-                  {log.details ? JSON.stringify(log.details) : ""}
+                <TableCell
+                  style={{
+                    maxWidth: 200,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {log.message}
                 </TableCell>
                 <TableCell>{log.stakeUsername}</TableCell>
                 <TableCell>{log.appVersion}</TableCell>
                 <TableCell>{log.platform}</TableCell>
+                <TableCell style={{ maxWidth: 200 }}>
+                  {log.details ? (
+                    <Accordion>
+                      <AccordionSummary
+                        expandIcon={<ExpandMore />}
+                        aria-controls="panel-content"
+                        id="panel-header"
+                      >
+                        <Typography>Voir les détails</Typography>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <ReactJson src={log.details} collapsed={false} />
+                      </AccordionDetails>
+                    </Accordion>
+                  ) : (
+                    "N/A"
+                  )}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </Paper>
+      </TableContainer>
     </Container>
   );
 }
