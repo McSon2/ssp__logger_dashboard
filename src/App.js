@@ -24,13 +24,21 @@ function App() {
   useEffect(() => {
     fetchLogs();
 
-    const socket = new WebSocket("wss://ssplogger-ssplogger.up.railway.app"); // Remplacez par votre URL WebSocket
+    const socket = new WebSocket("wss://ssplogger-ssplogger.up.railway.app");
 
     socket.onmessage = (event) => {
       const message = JSON.parse(event.data);
       if (message.type === "NEW_LOG") {
         setLogs((prevLogs) => [message.data, ...prevLogs]);
       }
+    };
+
+    socket.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+
+    socket.onclose = (event) => {
+      console.log("WebSocket connection closed:", event);
     };
 
     return () => {
