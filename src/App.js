@@ -14,7 +14,7 @@ import {
   DialogContent,
   DialogActions,
   IconButton,
-  Grid2, // Importé ici
+  Grid2,
 } from "@mui/material";
 import { Close } from "@mui/icons-material";
 import ReactJson from "@microlink/react-json-view";
@@ -23,28 +23,30 @@ function App() {
   const [logs, setLogs] = useState([]);
   const [stakeUsernameFilter, setStakeUsernameFilter] = useState("");
   const [levelFilter, setLevelFilter] = useState("");
-  const [page, setPage] = useState(1);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedLog, setSelectedLog] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Mémoriser fetchLogs avec useCallback
   const fetchLogs = useCallback(() => {
+    setIsLoading(true);
     axios
       .get("https://ssplogger-ssplogger.up.railway.app/api/logs", {
         params: {
           stakeUsername: stakeUsernameFilter || undefined,
           level: levelFilter || undefined,
-          page: page,
-          limit: 10, // Ajustez ce nombre selon vos besoins
         },
       })
       .then((response) => {
-        setLogs((prevLogs) => [...prevLogs, ...response.data]);
+        setLogs(response.data);
       })
       .catch((error) => {
         console.error("Erreur lors de la récupération des logs :", error);
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
-  }, [stakeUsernameFilter, levelFilter, page]);
+  }, [stakeUsernameFilter, levelFilter]);
 
   // Utiliser useEffect pour appeler fetchLogs au montage et lors des changements
   useEffect(() => {
@@ -57,16 +59,11 @@ function App() {
         .delete("https://ssplogger-ssplogger.up.railway.app/api/logs")
         .then(() => {
           setLogs([]);
-          setPage(1);
         })
         .catch((error) => {
           console.error("Erreur lors de la suppression des logs :", error);
         });
     }
-  };
-
-  const handleLoadMore = () => {
-    setPage((prevPage) => prevPage + 1);
   };
 
   const handleOpenDialog = (log) => {
@@ -105,6 +102,11 @@ function App() {
           />
         </Grid2>
         <Grid2 xs={12} sm={6} md={4}>
+          <Button variant="contained" color="primary" onClick={fetchLogs} fullWidth disabled={isLoading}>
+            {isLoading ? "Chargement..." : "Rechercher"}
+          </Button>
+        </Grid2>
+        <Grid2 xs={12}>
           <Button variant="contained" color="secondary" onClick={handleDeleteLogs} fullWidth>
             Vider les logs
           </Button>
@@ -139,10 +141,11 @@ function App() {
         ))}
       </Grid2>
 
-      {/* Bouton pour charger plus de logs */}
-      <Button variant="contained" color="primary" onClick={handleLoadMore} fullWidth sx={{ marginTop: 2 }}>
-        Charger plus de logs
-      </Button>
+      {logs.length === 0 && !isLoading && (
+        <Typography variant="body1" align="center" sx={{ marginTop: 2 }}>
+          Aucun log trouvé.
+        </Typography>
+      )}
 
       {/* Dialog pour afficher les détails */}
       <Dialog open={openDialog} onClose={handleCloseDialog} fullScreen>
