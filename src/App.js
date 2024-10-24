@@ -38,6 +38,7 @@ function App() {
               <TableCell>Timestamp</TableCell>
               <TableCell>Niveau</TableCell>
               <TableCell>Message</TableCell>
+              <TableCell>Détails</TableCell>
               <TableCell>Utilisateur</TableCell>
               <TableCell>Version App</TableCell>
               <TableCell>Plateforme</TableCell>
@@ -51,6 +52,9 @@ function App() {
                 </TableCell>
                 <TableCell>{log.level}</TableCell>
                 <TableCell>{log.message}</TableCell>
+                <TableCell>
+                  {log.details ? JSON.stringify(log.details) : ""}
+                </TableCell>
                 <TableCell>{log.stakeUsername}</TableCell>
                 <TableCell>{log.appVersion}</TableCell>
                 <TableCell>{log.platform}</TableCell>
