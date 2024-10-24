@@ -25,7 +25,9 @@ function App() {
   useEffect(() => {
     fetchLogs();
 
-    const socket = io("https://ssplogger-ssplogger.up.railway.app");
+    const socket = io("https://ssplogger-ssplogger.up.railway.app", {
+      transports: ["websocket"],
+    });
 
     socket.on("NEW_LOG", (data) => {
       setLogs((prevLogs) => [data, ...prevLogs]);
