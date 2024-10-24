@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import {
   Container,
@@ -28,7 +28,8 @@ function App() {
   const [orderBy, setOrderBy] = useState("timestamp");
   const [order, setOrder] = useState("desc");
 
-  const fetchLogs = () => {
+  // Mémoriser fetchLogs avec useCallback
+  const fetchLogs = useCallback(() => {
     axios
       .get("https://ssplogger-ssplogger.up.railway.app/api/logs", {
         params: {
@@ -55,12 +56,12 @@ function App() {
       .catch((error) => {
         console.error("Erreur lors de la récupération des logs :", error);
       });
-  };
+  }, [stakeUsernameFilter, levelFilter, orderBy, order]);
 
-  // Utiliser useEffect pour appeler fetchLogs au montage et lors des changements de filtres
+  // Utiliser useEffect pour appeler fetchLogs au montage et lors des changements
   useEffect(() => {
     fetchLogs();
-  }, [stakeUsernameFilter, levelFilter, orderBy, order]);
+  }, [fetchLogs]);
 
   const handleRequestSort = (property) => {
     const isAsc = orderBy === property && order === "asc";
